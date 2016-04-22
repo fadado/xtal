@@ -1,0 +1,54 @@
+#!/bin/sh
+# xtal - expands an XTAL template
+# Usage: tal template inputfile
+# Joan Ordinas <jordinas@gmail.com>
+
+if [[ $1 == _ ]]; then
+	EXPAND=yes
+	shift
+else
+	EXPAND=no
+fi
+
+TEMPLATE=${1}
+if [[ -z $TEMPLATE ]]; then
+	echo 1>&2 'Error: expected template filename'
+	echo 1>&2 "Usage: ${0##*/} template inputfile"
+	exit 1
+fi
+
+if [[ $EXPAND == yes ]]; then
+	xsltproc $0.xsl "$TEMPLATE"
+	exit
+fi
+
+INPUT=${2}
+if [[ -z $INPUT ]]; then
+	echo 1>&2 'Error: expected inputfile'
+	echo 1>&2 "Usage: ${0##*/} template inputfile"
+	exit 1
+fi
+
+trap "rm -f /tmp/TAL$$" EXIT
+
+xsltproc $0.xsl "$TEMPLATE" > /tmp/TAL$$
+
+case $? in
+	0) ;;	# ok
+	1) echo 1>&2 "xsltproc: No argument"; exit ;;
+	2) echo 1>&2 "xsltproc: Too many parameters"; exit ;;
+	3) echo 1>&2 "xsltproc: Unknown option"; exit ;;
+	4) echo 1>&2 "xsltproc: Failed to parse the stylesheet"; exit ;;
+	5) echo 1>&2 "xsltproc: Error in the stylesheet"; exit ;;
+	6) echo 1>&2 "xsltproc: Error in one of the documents"; exit ;;
+	7) echo 1>&2 "xsltproc: Unsupported xsl:output method"; exit ;;
+	8) echo 1>&2 "xsltproc: String parameter contains both quote and double-quotes"; exit ;;
+	9) echo 1>&2 "xsltproc: Internal processing error"; exit ;;
+	10) echo 1>&2 "xsltproc: Processing was stopped by a terminating message"; exit ;;
+	11) echo 1>&2 "xsltproc: Could not write the result to the output file"; exit ;;
+	*) echo 1>&2 "xsltproc: Unknown status code"; exit ;;
+esac
+
+xsltproc --xinclude /tmp/TAL$$ "$INPUT"
+
+exit
